@@ -1,9 +1,9 @@
 import { api } from './client'
 import type { SalePayload } from '@/types/sale'
 
-export type CreatedDoc =
-  | { id?: number; number?: string | number }
-  | { result?: Array<{ id?: number; number?: string | number }> }
+type DocItem = { id?: number; number?: string | number }
+type DocList = { result?: DocItem[] }
+export type CreatedDoc = DocItem | DocList
 
 export async function createSale(payload: SalePayload) {
   const { data } = await api.post<CreatedDoc>('/api/v1/docs_sales/', payload, {
@@ -13,8 +13,15 @@ export async function createSale(payload: SalePayload) {
 }
 
 export function extractDocLabel(resp: CreatedDoc): string | undefined {
-  const first =
-    (Array.isArray(resp?.result) && resp.result[0]) ? resp.result[0] : (resp as unknown)
-  const num = first?.number ?? first?.id
+  let num: string | number | undefined
+
+  if ('result' in resp && Array.isArray(resp.result) && resp.result.length > 0) {
+    const first = resp.result[0]
+    num = first?.number ?? first?.id
+  } else {
+    const single = resp as DocItem
+    num = single.number ?? single.id
+  }
+
   return typeof num === 'number' || typeof num === 'string' ? String(num) : undefined
 }
